@@ -4,6 +4,13 @@
 These are the coding style rules for LGraph. Each rule can be broken, but it
 should be VERY rare, and a small comment should be placed explaining why.
 
+## Overall
+
+* When possible keep the system simple. Complexity is the enemy of maintenance.
+* Deprecate no longer used features.
+* Try to reduce friction. This means to avoid hidden/complex steps.
+* Every main API should have a unit test for testing but also to demonstrate usage.
+
 ## comments
 
 Code should be the comments, try to keep comments concise. They should explain
@@ -102,12 +109,18 @@ for(const auto &[name, id]:name2id) {
 ```
 
 
-## Use "auto" and "const auto" when possible.
+## Use "auto", or "const auto", when possible.
 
 ```cpp
 for(auto idx:g->unordered()) {
   for(const auto &c:g->out_edges(idx)) {
 ```
+
+## const and local variables
+
+It may be too verbose to write const all the time. The coding style request to use 
+const (when possible) in iterators and pointers. The others are up to the programmer.
+
 
 ## Strings must be passed as std::string_view
 

@@ -53,9 +53,8 @@ enum Node_Type_Op : uint64_t {
   // op_class: Tuple
   TupAdd_Op,
   TupGet_Op,
-  // op_class: dfg
-  DfgRef_Op,
-  DfgPendingGraph_Op,
+  TupRef_Op,
+  TupKey_Op,
 // Add here, operators needed
 #if 1
   // WARNING: deprecated once we have LUTs working (mockturtle)
@@ -603,13 +602,37 @@ public:
       inputs.push_back(wr + "_ADDR");
       inputs.push_back(wr + "_DATA");
       inputs.push_back(wr + "_EN");
+      //inputs.push_back(wr + "_SEQID");
 
       std::string rd = "RD" + std::to_string(i);
       inputs.push_back(rd + "_ADDR");
       inputs.push_back(rd + "_EN");
+      //inputs.push_back(wr + "_SEQID");
 
       outputs.push_back(rd + "_DATA");
     }
+
+    /*
+     a.rd2_seqid = 0
+     a.rd2_addr = 3
+     I(a.rd2_data == 0)
+
+     a.wr0_seqid =1
+     a.wr0_addr = 3
+     a.wr0_data = 3
+
+     a.rd0_seqid = 4
+     a.rd0_addr = 3
+     I(a.rd0_data == 3)
+
+     a.wr1_seqid =7
+     a.wr1_addr = 3
+     a.wr1_data = 4
+
+     a.rd1_seqid = 8
+     a.rd1_addr = 3
+     I(a.rd1_data == 4)
+    */
   };
 };
 
@@ -644,39 +667,40 @@ public:
 // TN = tuple name, KP = key position , KN = key name, V = value
 class Node_Type_TupAdd : public Node_Type {
 public:
-  Node_Type_TupAdd() : Node_Type("tuple_add", TupAdd_Op, false) {
+  Node_Type_TupAdd() : Node_Type("tup_add", TupAdd_Op, false) {
     inputs.push_back("TN");
-    inputs.push_back("KP");
     inputs.push_back("KN");
-    inputs.push_back("V");
+    inputs.push_back("KP");
+    inputs.push_back("KV");
     outputs.push_back("Y");
   };
 };
 
 
-// A = tuple precedence, K = position or name, Y = value
+// TN = tuple precedence name, K = position or name, Y = value
 class Node_Type_TupGet : public Node_Type {
 public:
-  Node_Type_TupGet() : Node_Type("tuple_get", TupGet_Op, false) {
-    inputs.push_back("A");
-    inputs.push_back("K");
+  Node_Type_TupGet() : Node_Type("tup_get", TupGet_Op, false) {
+    inputs.push_back("TN");
+    inputs.push_back("KN");
+    inputs.push_back("KP");
     outputs.push_back("Y");
   };
 };
 
 
-class Node_Type_DfgRef : public Node_Type {
+// Y = tuple root name
+class Node_Type_TupRef : public Node_Type {
 public:
-  Node_Type_DfgRef() : Node_Type("dfg_ref", DfgRef_Op, false) {
-    inputs.push_back("A");
+  Node_Type_TupRef() : Node_Type("tup_ref", TupRef_Op, true) {
     outputs.push_back("Y");
   };
 };
 
-class Node_Type_DfgPendingGraph : public Node_Type {
+// Y = tuple key name
+class Node_Type_TupKey : public Node_Type {
 public:
-  Node_Type_DfgPendingGraph() : Node_Type("dfg_pending_graph", DfgPendingGraph_Op, false) {
-    inputs.push_back("A");
+  Node_Type_TupKey() : Node_Type("tup_key", TupKey_Op, true) {
     outputs.push_back("Y");
   };
 };

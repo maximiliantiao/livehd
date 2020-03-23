@@ -7,10 +7,10 @@
 
 //FIXME: need ordered map to guarantee phi-node generation order to be able to test LNAST-SSA, better to use absl::btree_map
 //using Phi_rtable = absl::flat_hash_map<std::string_view, Lnast_nid>; //rtable = resolve_table
-using Lnast_nid = mmap_lib::Tree_index;
-using Phi_rtable = std::map<std::string_view, Lnast_nid>; //rtable = resolve_table
-using Cnt_rtable = absl::flat_hash_map<std::string_view, int8_t>;
-
+using Lnast_nid          = mmap_lib::Tree_index;
+using Phi_rtable         = std::map<std::string_view, Lnast_nid>; //rtable = resolve_table
+using Cnt_rtable         = absl::flat_hash_map<std::string_view, int8_t>;
+using Dot_sel_lrhs_table = absl::flat_hash_map<Lnast_nid, bool>;
 //tricky old C macro to avoid redundant code from function overloadings
 #define CREATE_LNAST_NODE(type) \
         static Lnast_node create##type(std::string_view sview){return Lnast_node(Lnast_ntype::create##type(), Token(0, 0, 0, 0, sview));}\
@@ -74,7 +74,6 @@ struct Lnast_node {
   CREATE_LNAST_NODE(_const)
   CREATE_LNAST_NODE(_attr)
   CREATE_LNAST_NODE(_assert)
-
 };
 
 
@@ -97,13 +96,19 @@ private:
   void      update_global_lhs_ssa_cnt_table      (const Lnast_nid &target_nid);
   int8_t    check_rhs_cnt_table_parents_chain    (const Lnast_nid &psts_nid, const Lnast_nid &target_key);
   void      update_rhs_ssa_cnt_table             (const Lnast_nid &psts_nid, const Lnast_nid &target_key);
+  void      determine_dot_sel_lrhs               (const Lnast_nid &psts_nid);
+  void      determine_dot_sel_lrhs_if_subtree    (const Lnast_nid &if_nid);
+  void      determine_dot_sel_lrhs_handle_a_statement (const Lnast_nid &psts_nid, const Lnast_nid &opr_nid);
 
+  bool      has_attribute_bits                   (const Lnast_nid &opr_nid);
+  bool      is_special_case_of_dot_sel_rhs       (const Lnast_nid &psts_nid,  const Lnast_nid &opr_nid);
+  void      ssa_rhs_handle_a_operand             (const Lnast_nid &gpsts_nid, const Lnast_nid &opd_nid); //gpsts = grand parent
+  void      ssa_rhs_handle_a_operand_special     (const Lnast_nid &gpsts_nid, const Lnast_nid &opd_nid);
 
-
-  absl::flat_hash_map<std::string_view, Phi_rtable> phi_resolve_tables;
-  absl::flat_hash_map<std::string_view, Cnt_rtable> ssa_rhs_cnt_tables;
-  absl::flat_hash_map<std::string_view, uint8_t>    global_ssa_lhs_cnt_table;
-
+  absl::flat_hash_map<std::string_view, Phi_rtable>         phi_resolve_tables;
+  absl::flat_hash_map<std::string_view, Cnt_rtable>         ssa_rhs_cnt_tables;
+  absl::flat_hash_map<std::string_view, uint8_t>            global_ssa_lhs_cnt_table;
+  absl::flat_hash_map<std::string_view, Dot_sel_lrhs_table> dot_sel_lrhs_tables;
   Phi_rtable new_added_phi_node_table;
   Lnast_nid  default_const_nid;
 
@@ -116,13 +121,16 @@ public:
 
   std::string_view get_top_module_name() const { return top_module_name; }
 
+  bool             is_lhs    (const Lnast_nid &psts_nid, const Lnast_nid &opr_nid);
   std::string_view get_name  (const Lnast_nid &nid) { return get_data(nid).token.get_text(); }
   Lnast_ntype      get_type  (const Lnast_nid &nid) { return get_data(nid).type; }
   uint8_t          get_subs  (const Lnast_nid &nid) { return get_data(nid).subs; }
   Token            get_token (const Lnast_nid &nid) { return get_data(nid).token; }
-  std::string_view get_sname (const Lnast_nid &nid) { //ssa name
+  std::string      get_sname (const Lnast_nid &nid) { //sname = ssa name
+    if(get_type(nid).is_const())
+      return std::string(get_name(nid));
     // FIXME: sh: any better way to concate a string_view??
-    return absl::StrCat(std::string(get_name(nid)), ",", get_subs(nid));
+    return absl::StrCat(std::string(get_name(nid)), "_", get_subs(nid));
   }
 };
 

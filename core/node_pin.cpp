@@ -111,7 +111,7 @@ std::string Node_pin::debug_name() const {
     }
   }
 
-  return absl::StrCat("node_pin_", std::to_string(get_node().nid), "_", name, "_", std::to_string(pid), sink ? "s" : "d", "_lg_",
+  return absl::StrCat("node_pin_", "n", std::to_string(get_node().nid), "_", name, "_", sink ? "s" : "d", std::to_string(pid),  "_lg_",
                       current_g->get_name());
 }
 
@@ -143,6 +143,17 @@ std::string_view Node_pin::create_name() const {
 }
 
 bool Node_pin::has_name() const { return Ann_node_pin_name::ref(current_g)->has_key(get_compact_class_driver()); }
+
+Node_pin Node_pin::find_driver_pin(LGraph *top, std::string_view wname) {
+
+  auto       ref = Ann_node_pin_name::ref(top);
+  const auto it  = ref->find_val(wname);
+  if (it == ref->end()) {
+    return Node_pin();
+  }
+
+  return Node_pin(top, ref->get_key(it));
+}
 
 void Node_pin::set_offset(uint16_t offset) {
   if (offset == 0) return;
@@ -191,7 +202,7 @@ Node_pin Node_pin::get_down_pin() const {
   I(!top_g->ref_htree()->is_leaf(hidx));
 
   // 1st: Get down_hidx
-  auto *tree_pos = Ann_node_tree_pos::ref(current_g);
+  const auto *tree_pos = Ann_node_tree_pos::ref(current_g);
   I(tree_pos);
   I(tree_pos->has(node.get_compact_class()));
   auto pos = tree_pos->get(node.get_compact_class());
