@@ -87,6 +87,7 @@ void Inou_lnast_dfg::process_ast_stmts(LGraph *dfg, const Lnast_nid &lnidx_stmts
     const auto ntype = lnast->get_data(lnidx).type;
     // FIXME->sh: how to use switch to gain performance?
     if (ntype.is_assign()) {
+      fmt::print("lnast2lgraph test a\n");
       process_ast_assign_op(dfg, lnidx);
     } else if (ntype.is_nary_op()) {
       process_ast_nary_op(dfg, lnidx);
@@ -654,16 +655,22 @@ void Inou_lnast_dfg::setup_lnast_to_lgraph_primitive_type_mapping() {
 }
 
 void Inou_lnast_dfg::lglnverif_tolg(Eprp_var &var) {
-  //Assumption: Pipe some LG[s] into this command.
+  std::unique_ptr<Lnast> lnast = std::make_unique<Lnast>("test_module");
+  lnast->set_root(Lnast_node(Lnast_ntype::create_top(), Token(0, 0, 0, 0, "top")));
+  auto idx_stmts = lnast->add_child(lnast->get_root(), Lnast_node::create_stmts("stmts"));
 
-  //Take LG[s], translate them to into LNAST[s]
-  Pass_lgraph_to_lnast p(var);
-  p.trans(var);
-  fmt::print("Pre LN -> LG:");
-  for (const auto &l : var.lnasts) {
-    fmt::print(" {}", l->get_top_module_name());
-  }
-  fmt::print("\n");
+  auto xor_node = lnast->add_child(idx_stmts, Lnast_node::create_xor("xor"));
+  lnast->add_child(xor_node, Lnast_node::create_ref("T0"));
+  lnast->add_child(xor_node, Lnast_node::create_ref("$a"));
+  lnast->add_child(xor_node, Lnast_node::create_ref("$b"));
+
+  auto asg_node = lnast->add_child(idx_stmts, Lnast_node::create_assign("asg"));
+  lnast->add_child(asg_node, Lnast_node::create_ref("%c"));
+  lnast->add_child(asg_node, Lnast_node::create_ref("T0"));
+
+  //lnast->dump();
+
+  var.add(std::move(lnast));
 
   //For each new LNAST, translate them to LG[s]
   Inou_lnast_dfg i(var);
@@ -676,7 +683,7 @@ std::vector<LGraph *> Inou_lnast_dfg::do_lglnverif_tolg(Eprp_var &var) {
 
   std::vector<LGraph *> lgs;
   for (const auto &l : var.lnasts) {
-    LGraph *dfg = LGraph::create("lgdb2", absl::StrCat(l->get_top_module_name(),"_new"), "my_test");
+    LGraph *dfg = LGraph::create("lgdb2", l->get_top_module_name(), "my_test");
 
     lnast = l;
     lnast2lgraph(dfg);
